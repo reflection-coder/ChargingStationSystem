@@ -1052,6 +1052,8 @@ def _demo_setup_scenario(charge_amount=1.0):
         base_dt = datetime(2024, 6, 1, 10, 0, 0)
         base = base_dt.isoformat()
 
+        charging_records = []  # (request_id, charger_no)
+
         def ins(uid, qno, mode, cno, pos, status):
             cur.execute(
                 """INSERT INTO requests
@@ -1062,6 +1064,9 @@ def _demo_setup_scenario(charge_amount=1.0):
                  chargers[cno]['id'], pos, base, base,
                  base if status == 'charging' else None)
             )
+            rid = cur.lastrowid
+            if status == 'charging':
+                charging_records.append((rid, cno))
 
         ins(user_ids[0], 'F1', 'fast', 'F1', 0, 'charging')
         ins(user_ids[1], 'F4', 'fast', 'F1', 1, 'queued')
@@ -1082,6 +1087,10 @@ def _demo_setup_scenario(charge_amount=1.0):
         scheduler.fault_charger_id = None
         scheduler.fault_pending_request_ids = []
         scheduler.fault_charger_type = None
+
+        # 为每辆"充电中"的车辆启动计时线程，使其能正常完成充电并触发账单和队列推进
+        for req_id, cno in charging_records:
+            scheduler._start_charging(req_id, chargers[cno]['id'])
 
         add_log('demo_setup', '管理员初始化7c演示场景')
         return True, '演示场景初始化成功'
