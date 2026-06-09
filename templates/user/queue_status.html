@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}排队状态 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>📍 排队状态</h1>
+
+    {% if queue_details %}
+    {% for detail in queue_details %}
+    <div class="card queue-card">
+        <div class="queue-header">
+            <span class="badge badge-lg badge-{{ 'fast' if detail.mode == 'fast' else 'slow' }}">
+                {{ detail.queue_number }}
+            </span>
+            <span class="queue-mode">{{ '快充' if detail.mode == 'fast' else '慢充' }}模式</span>
+            <span class="status status-{{ detail.status }}">
+                {% if detail.status == 'waiting' %}等候中
+                {% elif detail.status == 'queued' %}排队中
+                {% elif detail.status == 'charging' %}充电中⚡
+                {% endif %}
+            </span>
+        </div>
+
+        <div class="queue-body">
+            <div class="queue-info-grid">
+                <div class="queue-info-item">
+                    <span class="label">请求充电量</span>
+                    <span class="value">{{ detail.request_amount }} 度</span>
+                </div>
+
+                {% if detail.status == 'waiting' %}
+                <div class="queue-info-item">
+                    <span class="label">同模式前车数量</span>
+                    <span class="value highlight">{{ detail.ahead_count }} 辆</span>
+                </div>
+                <div class="queue-info-item">
+                    <span class="label">所在区域</span>
+                    <span class="value">等候区</span>
+                </div>
+                {% elif detail.status in ('queued', 'charging') %}
+                <div class="queue-info-item">
+                    <span class="label">分配充电桩</span>
+                    <span class="value">{{ detail.charger_no }}</span>
+                </div>
+                <div class="queue-info-item">
+                    <span class="label">队列位置</span>
+                    <span class="value">第 {{ detail.charger_queue_position + 1 }} 位</span>
+                </div>
+                {% if detail.status == 'queued' and detail.estimated_wait_hours is defined %}
+                <div class="queue-info-item">
+                    <span class="label">预计等待时间</span>
+                    <span class="value highlight">{{ detail.estimated_wait_hours }} 小时</span>
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+
+            <div class="queue-actions">
+                <a href="{{ url_for('modify_request', request_id=detail.id) }}" class="btn btn-sm btn-outline">修改请求</a>
+                {% if detail.status == 'charging' %}
+                <a href="{{ url_for('end_charging', request_id=detail.id) }}" class="btn btn-sm btn-warning" onclick="return confirm('确认结束充电？将按实际充电量计费。')">结束充电</a>
+                {% endif %}
+                <a href="{{ url_for('cancel_request', request_id=detail.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('确认取消？')">取消</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="card">
+        <p class="empty-text">暂无活跃充电请求</p>
+        <div style="text-align:center;margin-top:20px;">
+            <a href="{{ url_for('submit_request') }}" class="btn btn-primary">提交充电请求</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="auto-refresh">
+        <label><input type="checkbox" id="auto-refresh" checked> 自动刷新 (5秒)</label>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+if (document.getElementById('auto-refresh').checked) {
+    setInterval(function() {
+        location.reload();
+    }, 5000);
+}
+document.getElementById('auto-refresh').addEventListener('change', function() {
+    if (this.checked) {
+        location.reload();
+    }
+});
+</script>
+{% endblock %}

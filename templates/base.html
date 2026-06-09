@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}智能充电桩调度计费系统{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">⚡ 智能充电桩调度计费系统</a>
+            <div class="nav-menu">
+                {% if session.user_id %}
+                    {% if session.role == 'admin' %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="nav-link">管理面板</a>
+                        <a href="{{ url_for('admin_chargers') }}" class="nav-link">充电桩</a>
+                        <a href="{{ url_for('admin_queue') }}" class="nav-link">队列</a>
+                        <a href="{{ url_for('admin_bills') }}" class="nav-link">详单</a>
+                        <a href="{{ url_for('admin_reports') }}" class="nav-link">报表</a>
+                        <a href="{{ url_for('admin_users') }}" class="nav-link">用户</a>
+                        <a href="{{ url_for('admin_settings') }}" class="nav-link">参数</a>
+                        <a href="{{ url_for('admin_simulation_time') }}" class="nav-link">时间</a>
+                        <a href="{{ url_for('admin_logs') }}" class="nav-link">日志</a>
+                        <a href="{{ url_for('admin_fault_demo') }}" class="nav-link nav-link-demo">7c演示</a>
+                    {% else %}
+                        <a href="{{ url_for('user_dashboard') }}" class="nav-link">我的面板</a>
+                        <a href="{{ url_for('submit_request') }}" class="nav-link">提交请求</a>
+                        <a href="{{ url_for('queue_status') }}" class="nav-link">排队状态</a>
+                        <a href="{{ url_for('user_bills') }}" class="nav-link">充电详单</a>
+                    {% endif %}
+                    <span class="nav-user">{{ session.username }}</span>
+                    <a href="{{ url_for('logout') }}" class="nav-link nav-logout">退出</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="nav-link">登录</a>
+                    <a href="{{ url_for('register') }}" class="nav-link">注册</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash消息 -->
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">
+                        {{ message }}
+                        <span class="flash-close" onclick="this.parentElement.remove()">×</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- 主内容 -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <p>智能充电桩调度计费系统 &copy; 2024</p>
+        <p>快充功率: {{ config.FAST_CHARGING_POWER }}度/时 | 慢充功率: {{ config.TRICKLE_CHARGING_POWER }}度/时 | 等候区: {{ config.WAITING_AREA_SIZE }}车位</p>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

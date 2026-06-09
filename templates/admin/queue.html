@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}队列监控 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>👁️ 队列监控</h1>
+
+    <!-- 等候区 -->
+    <div class="card">
+        <h3>🅿️ 等候区车辆 ({{ waiting_details|length }} / {{ config.WAITING_AREA_SIZE }})</h3>
+        {% if waiting_details %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>排队号</th>
+                    <th>用户ID</th>
+                    <th>用户名</th>
+                    <th>模式</th>
+                    <th>电池总容量(度)</th>
+                    <th>请求充电量(度)</th>
+                    <th>排队时长(时)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in waiting_details %}
+                <tr>
+                    <td><span class="badge badge-{{ v.mode }}">{{ v.queue_number }}</span></td>
+                    <td>{{ v.user_id }}</td>
+                    <td>{{ v.username }}</td>
+                    <td>{{ '快充' if v.mode == 'fast' else '慢充' }}</td>
+                    <td>{{ v.battery_capacity }}</td>
+                    <td>{{ v.request_amount }}</td>
+                    <td>{{ v.wait_hours }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-text">等候区为空</p>
+        {% endif %}
+    </div>
+
+    <!-- 各充电桩队列 -->
+    <h2>🔌 充电桩队列详情</h2>
+    {% for queue in charger_queues %}
+    <div class="card">
+        <div class="card-header">
+            <h3>充电桩 {{ queue.charger_no }}
+                <span class="charger-type-badge charger-type-{{ queue.type }}">
+                    {{ '快充' if queue.type == 'fast' else '慢充' }}
+                </span>
+                <span class="status status-{{ 'charging' if queue.status == 'working' else 'waiting' }}">
+                    {{ queue.status }}
+                </span>
+            </h3>
+            <span>队列: {{ queue.queue_length }} / {{ queue.max_queue }}</span>
+        </div>
+        {% if queue.vehicles %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>位置</th>
+                    <th>排队号</th>
+                    <th>用户ID</th>
+                    <th>用户名</th>
+                    <th>电池总容量(度)</th>
+                    <th>请求充电量(度)</th>
+                    <th>排队时长(时)</th>
+                    <th>状态</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in queue.vehicles %}
+                <tr class="{{ 'row-charging' if v.status == 'charging' else '' }}">
+                    <td>{{ v.position + 1 }}</td>
+                    <td><span class="badge badge-{{ queue.type }}">{{ v.queue_number }}</span></td>
+                    <td>{{ v.user_id }}</td>
+                    <td>{{ v.username }}</td>
+                    <td>{{ v.battery_capacity }}</td>
+                    <td>{{ v.request_amount }}</td>
+                    <td>{{ v.wait_hours }}</td>
+                    <td>{{ '⚡充电中' if v.status == 'charging' else '等待' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-text">队列为空</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="auto-refresh">
+        <label><input type="checkbox" id="auto-refresh" checked> 自动刷新 (3秒)</label>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+if (document.getElementById('auto-refresh').checked) {
+    setInterval(function() { location.reload(); }, 3000);
+}
+</script>
+{% endblock %}

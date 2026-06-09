@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}用户车辆信息维护 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>👥 用户（车辆）信息维护</h1>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>用户列表</h3>
+            <span>共 {{ users|length }} 个用户</span>
+        </div>
+        {% if users %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>用户名</th>
+                    <th>角色</th>
+                    <th>电池总容量(度)</th>
+                    <th>车辆型号</th>
+                    <th>注册时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>
+                        {% if user.role == 'admin' %}
+                        <span class="badge badge-fast">管理员</span>
+                        {% else %}
+                        <span class="badge badge-slow">用户</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.battery_capacity }}</td>
+                    <td>{{ user.vehicle_model or '-' }}</td>
+                    <td>{{ user.created_at[:10] if user.created_at else '-' }}</td>
+                    <td>
+                        <a href="{{ url_for('admin_edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline">编辑</a>
+                        {% if user.role != 'admin' %}
+                        <a href="{{ url_for('admin_delete_user', user_id=user.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('确认删除此用户？')">删除</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-text">暂无用户</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

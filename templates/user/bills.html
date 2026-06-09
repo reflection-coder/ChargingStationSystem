@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}充电详单 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>📋 充电详单</h1>
+
+    {% if bills %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>详单编号</th>
+                    <th>生成时间</th>
+                    <th>模式</th>
+                    <th>充电桩</th>
+                    <th>充电量(度)</th>
+                    <th>充电时长(时)</th>
+                    <th>启动时间</th>
+                    <th>停止时间</th>
+                    <th>充电费(元)</th>
+                    <th>服务费(元)</th>
+                    <th>总费用(元)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bill in bills %}
+                <tr>
+                    <td><small>{{ bill.bill_no[:14] }}...</small></td>
+                    <td>{{ bill.generated_time[:19] if bill.generated_time else '-' }}</td>
+                    <td><span class="badge badge-{{ 'fast' if bill.mode == 'fast' else 'slow' }}">{{ '快充' if bill.mode == 'fast' else '慢充' }}</span></td>
+                    <td>{{ bill.charger_no }}</td>
+                    <td>{{ bill.charge_amount }}</td>
+                    <td>{{ bill.charge_duration }}</td>
+                    <td>{{ bill.start_time[:19] if bill.start_time else '-' }}</td>
+                    <td>{{ bill.end_time[:19] if bill.end_time else '-' }}</td>
+                    <td>¥{{ bill.charge_fee }}</td>
+                    <td>¥{{ bill.service_fee }}</td>
+                    <td><strong>¥{{ bill.total_fee }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card">
+        <p class="empty-text">暂无充电详单</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

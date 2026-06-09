@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}模拟时间控制 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>⏰ 模拟时间 / 加速倍率控制</h1>
+    <p class="settings-hint">系统使用独立模拟时钟进行计费与排队计算。可手动跳转时段以测试峰/平/谷电价。</p>
+
+    <!-- 当前状态 -->
+    <div class="sim-time-display">
+        <div class="card sim-time-card">
+            <div class="sim-time-label">当前模拟时间</div>
+            <div class="sim-time-value" id="sim-time-value">{{ time_info.simulation_time }}</div>
+            <div class="sim-time-meta">
+                <span class="badge badge-{{ time_info.period_key }}">{{ time_info.period_name }}</span>
+                <span>电价 {{ time_info.current_price }} 元/度</span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="detail-item">
+                <span class="label">真实系统时间</span>
+                <span class="value">{{ time_info.real_time }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">加速倍率</span>
+                <span class="value">{{ time_info.simulation_speed }}x</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">加速说明</span>
+                <span class="value">{{ time_info.speed_hint }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置模拟时间 -->
+    <div class="card">
+        <h3>📅 设置模拟时间</h3>
+        <form method="POST" class="sim-time-form">
+            <input type="hidden" name="action" value="set_time">
+            <div class="form-group">
+                <label for="simulation_datetime">指定日期与时间</label>
+                <input type="datetime-local" id="simulation_datetime" name="simulation_datetime"
+                       value="{{ time_info.simulation_time_iso[:16] }}" required>
+            </div>
+            <button type="submit" class="btn btn-primary">应用时间</button>
+        </form>
+    </div>
+
+    <!-- 快捷跳转 -->
+    <div class="card">
+        <h3>⚡ 快捷跳转到电价时段</h3>
+        <div class="preset-buttons">
+            {% for p in presets %}
+            <form method="POST" style="display:inline">
+                <input type="hidden" name="action" value="preset">
+                <input type="hidden" name="preset_hour" value="{{ p.hour }}">
+                <input type="hidden" name="preset_minute" value="{{ p.minute }}">
+                <button type="submit" class="btn btn-sm btn-outline">{{ p.label }}</button>
+            </form>
+            {% endfor %}
+        </div>
+        <small style="color:var(--gray-500);display:block;margin-top:8px;">保留当前日期，仅修改时刻</small>
+    </div>
+
+    <!-- 推进时间 -->
+    <div class="card">
+        <h3>⏩ 推进模拟时间</h3>
+        <form method="POST" class="settings-grid">
+            <input type="hidden" name="action" value="advance">
+            <div class="form-group">
+                <label for="advance_hours">推进小时</label>
+                <input type="number" id="advance_hours" name="advance_hours" value="1" min="0" max="168">
+            </div>
+            <div class="form-group">
+                <label for="advance_minutes">推进分钟</label>
+                <input type="number" id="advance_minutes" name="advance_minutes" value="0" min="0" max="1440">
+            </div>
+            <div class="form-group" style="align-self:end">
+                <button type="submit" class="btn btn-primary">推进时间</button>
+            </div>
+        </form>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+            <form method="POST" style="display:inline">
+                <input type="hidden" name="action" value="advance">
+                <input type="hidden" name="advance_hours" value="0">
+                <input type="hidden" name="advance_minutes" value="30">
+                <button type="submit" class="btn btn-sm btn-outline">+30 分钟</button>
+            </form>
+            <form method="POST" style="display:inline">
+                <input type="hidden" name="action" value="advance">
+                <input type="hidden" name="advance_hours" value="2">
+                <input type="hidden" name="advance_minutes" value="0">
+                <button type="submit" class="btn btn-sm btn-outline">+2 小时</button>
+            </form>
+            <form method="POST" style="display:inline" onsubmit="return confirm('确认将模拟时间同步为真实时间？')">
+                <input type="hidden" name="action" value="reset_time">
+                <button type="submit" class="btn btn-sm btn-warning">同步真实时间</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 加速倍率 -->
+    <div class="card">
+        <h3>🚀 模拟加速倍率</h3>
+        <form method="POST" class="sim-speed-form">
+            <input type="hidden" name="action" value="set_speed">
+            <div class="form-group">
+                <label for="simulation_speed">加速倍率（1~3600）</label>
+                <input type="range" id="simulation_speed_range" min="1" max="360" step="1"
+                       value="{{ time_info.simulation_speed if time_info.simulation_speed <= 360 else 360 }}"
+                       oninput="document.getElementById('simulation_speed').value=this.value">
+                <input type="number" id="simulation_speed" name="simulation_speed"
+                       value="{{ time_info.simulation_speed }}" min="1" max="3600" required
+                       oninput="document.getElementById('simulation_speed_range').value=Math.min(360,this.value)">
+                <small>60 = 真实1秒模拟1分钟；120 = 真实1秒模拟2分钟。仅影响新开始的充电等待时长。</small>
+            </div>
+            <button type="submit" class="btn btn-primary">保存加速倍率</button>
+        </form>
+        <div class="speed-presets">
+            {% for sp in [1, 30, 60, 120, 300, 600] %}
+            <form method="POST" style="display:inline">
+                <input type="hidden" name="action" value="set_speed">
+                <input type="hidden" name="simulation_speed" value="{{ sp }}">
+                <button type="submit" class="btn btn-sm btn-outline">{{ sp }}x</button>
+            </form>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="settings-actions">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">返回面板</a>
+        <a href="{{ url_for('admin_settings') }}" class="btn btn-outline">系统参数</a>
+    </div>
+</div>
+{% endblock %}

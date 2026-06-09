@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}管理员面板 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="dashboard">
+    <h1>🛠️ 管理员控制面板</h1>
+
+    <!-- 系统状态 -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.working_chargers }}/{{ stats.total_chargers }}</div>
+            <div class="stat-label">正常运行充电桩</div>
+        </div>
+        <div class="stat-card stat-fast">
+            <div class="stat-value">{{ stats.waiting_fast }}</div>
+            <div class="stat-label">快充等候车辆</div>
+        </div>
+        <div class="stat-card stat-slow">
+            <div class="stat-value">{{ stats.waiting_slow }}</div>
+            <div class="stat-label">慢充等候车辆</div>
+        </div>
+        <div class="stat-card {{ 'stat-warning' if stats.fault_chargers > 0 else '' }}">
+            <div class="stat-value">{{ stats.fault_chargers }}</div>
+            <div class="stat-label">故障充电桩</div>
+        </div>
+    </div>
+
+    <!-- 模拟时间 -->
+    <div class="card">
+        <div class="card-header">
+            <h3>⏰ 模拟时间</h3>
+            <a href="{{ url_for('admin_simulation_time') }}" class="btn btn-sm btn-outline">调节</a>
+        </div>
+        <div class="control-panel">
+            <div class="control-item">
+                <span>当前模拟时间:</span>
+                <strong>{{ time_info.simulation_time }}</strong>
+            </div>
+            <div class="control-item">
+                <span>电价时段:</span>
+                <span class="badge badge-{{ time_info.period_key }}">{{ time_info.period_name }}</span>
+                <span>{{ time_info.current_price }} 元/度</span>
+            </div>
+            <div class="control-item">
+                <span>加速倍率:</span>
+                <strong>{{ time_info.simulation_speed }}x</strong>
+                <small style="color:var(--gray-500)">{{ time_info.speed_hint }}</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统控制 -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🎛️ 系统控制</h3>
+        </div>
+        <div class="control-panel">
+            <div class="control-item">
+                <span>等候区叫号服务:</span>
+                <span class="status {{ 'status-charging' if scheduler_status.waiting_area_service else 'status-waiting' }}">
+                    {{ '运行中' if scheduler_status.waiting_area_service else '已暂停' }}
+                </span>
+                <a href="{{ url_for('toggle_waiting_service') }}" class="btn btn-sm btn-outline">
+                    {{ '暂停' if scheduler_status.waiting_area_service else '开启' }}
+                </a>
+            </div>
+            <div class="control-item">
+                <span>故障处理状态:</span>
+                <span class="status {{ 'status-charging' if not scheduler_status.fault_handling else 'status-waiting' }}">
+                    {{ '正常' if not scheduler_status.fault_handling else '处理中' }}
+                </span>
+            </div>
+            <div class="control-item">
+                <span>等候区容量:</span>
+                <strong>{{ stats.waiting_area_capacity }} 车位</strong>
+                <span>充电桩队列长度:</span>
+                <strong>{{ stats.charging_queue_len }} 车位</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- 扩展调度控制 -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🚀 扩展调度模式（选做）</h3>
+        </div>
+        <div class="control-panel">
+            <div class="control-item">
+                <span>当前模式:</span>
+                <span class="status status-{{ 'charging' if scheduler_status.extended_mode else 'cancelled' }}">
+                    {% if scheduler_status.extended_mode == 'single' %}
+                    单次调度总时长最短
+                    {% elif scheduler_status.extended_mode == 'batch' %}
+                    批量调度总时长最短
+                    {% else %}
+                    标准调度（FIFO）
+                    {% endif %}
+                </span>
+            </div>
+            <div class="control-item">
+                <a href="{{ url_for('admin_extended_schedule', mode='off') }}" class="btn btn-sm {{ 'btn-primary' if not scheduler_status.extended_mode else 'btn-outline' }}">标准调度</a>
+                <a href="{{ url_for('admin_extended_schedule', mode='single') }}" class="btn btn-sm {{ 'btn-primary' if scheduler_status.extended_mode == 'single' else 'btn-outline' }}">单次调度(扩展a)</a>
+                <a href="{{ url_for('admin_extended_schedule', mode='batch') }}" class="btn btn-sm {{ 'btn-primary' if scheduler_status.extended_mode == 'batch' else 'btn-outline' }}">批量调度(扩展b)</a>
+            </div>
+            <small style="color:var(--gray-500)">
+                扩展a: 多空位时同时叫多个号，总充电时长最短 | 扩展b: 满容量触发，不区分快慢充
+            </small>
+        </div>
+    </div>
+
+    <!-- 充电桩概览 -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🔌 充电桩概览</h3>
+            <a href="{{ url_for('admin_chargers') }}" class="btn btn-outline">详细管理</a>
+        </div>
+        <div class="charger-grid">
+            {% for charger in chargers %}
+            <div class="charger-mini-card charger-{{ charger.status }}">
+                <div class="charger-mini-header">
+                    <span class="charger-no">{{ charger.charger_no }}</span>
+                    <span class="charger-type-badge">{{ '快充' if charger.type == 'fast' else '慢充' }}</span>
+                </div>
+                <div class="charger-mini-body">
+                    <div>功率: {{ charger.power }}度/时</div>
+                    <div>状态:
+                        {% if charger.status == 'working' %}
+                        <span style="color:green">正常</span>
+                        {% elif charger.status == 'fault' %}
+                        <span style="color:red">故障</span>
+                        {% else %}
+                        <span style="color:gray">已停止</span>
+                        {% endif %}
+                    </div>
+                    <div>累计充电: {{ charger.total_charges }}次</div>
+                    <div>累计电量: {{ '%.1f' % charger.total_energy }}度</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 快捷操作 -->
+    <div class="quick-actions">
+        <a href="{{ url_for('admin_chargers') }}" class="btn btn-primary">充电桩管理</a>
+        <a href="{{ url_for('admin_queue') }}" class="btn btn-outline">队列监控</a>
+        <a href="{{ url_for('admin_bills') }}" class="btn btn-outline">全站详单</a>
+        <a href="{{ url_for('admin_reports') }}" class="btn btn-outline">数据报表</a>
+        <a href="{{ url_for('admin_users') }}" class="btn btn-outline">用户/车辆维护</a>
+        <a href="{{ url_for('admin_settings') }}" class="btn btn-outline">系统参数</a>
+        <a href="{{ url_for('admin_simulation_time') }}" class="btn btn-outline">模拟时间</a>
+        <a href="{{ url_for('admin_logs') }}" class="btn btn-outline">系统日志</a>
+    </div>
+</div>
+{% endblock %}
