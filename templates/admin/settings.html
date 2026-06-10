@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}系统参数设置 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>⚙️ 系统参数设置</h1>
+    <p class="settings-hint">修改后立即生效并保存到数据库。减少充电桩数量时，需确保对应桩无排队车辆。</p>
+
+    <form method="POST" action="{{ url_for('admin_settings') }}" class="settings-form">
+        <input type="hidden" name="action" value="save">
+
+        <div class="card">
+            <h3>🔌 充电桩配置</h3>
+            <div class="settings-grid">
+                <div class="form-group">
+                    <label for="fast_charging_pile_num">快充电桩数量</label>
+                    <input type="number" id="fast_charging_pile_num" name="fast_charging_pile_num"
+                           value="{{ s.FAST_CHARGING_PILE_NUM }}" min="1" max="20" required>
+                </div>
+                <div class="form-group">
+                    <label for="trickle_charging_pile_num">慢充电桩数量</label>
+                    <input type="number" id="trickle_charging_pile_num" name="trickle_charging_pile_num"
+                           value="{{ s.TRICKLE_CHARGING_PILE_NUM }}" min="1" max="20" required>
+                </div>
+                <div class="form-group">
+                    <label for="fast_charging_power">快充功率（度/小时）</label>
+                    <input type="number" id="fast_charging_power" name="fast_charging_power"
+                           value="{{ s.FAST_CHARGING_POWER }}" min="0.1" step="0.1" required>
+                </div>
+                <div class="form-group">
+                    <label for="trickle_charging_power">慢充功率（度/小时）</label>
+                    <input type="number" id="trickle_charging_power" name="trickle_charging_power"
+                           value="{{ s.TRICKLE_CHARGING_POWER }}" min="0.1" step="0.1" required>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🅿️ 排队配置</h3>
+            <div class="settings-grid">
+                <div class="form-group">
+                    <label for="waiting_area_size">等候区容量（车位）</label>
+                    <input type="number" id="waiting_area_size" name="waiting_area_size"
+                           value="{{ s.WAITING_AREA_SIZE }}" min="1" max="100" required>
+                </div>
+                <div class="form-group">
+                    <label for="charging_queue_len">充电桩队列长度（车位/桩）</label>
+                    <input type="number" id="charging_queue_len" name="charging_queue_len"
+                           value="{{ s.CHARGING_QUEUE_LEN }}" min="1" max="20" required>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>💰 计费配置</h3>
+            <div class="settings-grid">
+                <div class="form-group">
+                    <label for="service_fee_rate">服务费单价（元/度）</label>
+                    <input type="number" id="service_fee_rate" name="service_fee_rate"
+                           value="{{ s.SERVICE_FEE_RATE }}" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="peak_price">峰时电价（元/度）</label>
+                    <input type="number" id="peak_price" name="peak_price"
+                           value="{{ s.PRICE_PERIODS.peak.price }}" min="0.01" step="0.01" required>
+                    <small>10:00~15:00，18:00~21:00</small>
+                </div>
+                <div class="form-group">
+                    <label for="normal_price">平时电价（元/度）</label>
+                    <input type="number" id="normal_price" name="normal_price"
+                           value="{{ s.PRICE_PERIODS.normal.price }}" min="0.01" step="0.01" required>
+                    <small>7:00~10:00，15:00~18:00，21:00~23:00</small>
+                </div>
+                <div class="form-group">
+                    <label for="valley_price">谷时电价（元/度）</label>
+                    <input type="number" id="valley_price" name="valley_price"
+                           value="{{ s.PRICE_PERIODS.valley.price }}" min="0.01" step="0.01" required>
+                    <small>23:00~次日7:00</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-actions">
+            <button type="submit" class="btn btn-primary">保存设置</button>
+            <button type="submit" name="action" value="reset" class="btn btn-warning"
+                    onclick="return confirm('确认恢复为 config.py 默认配置？')">恢复默认</button>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">返回面板</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

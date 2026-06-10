@@ -1,0 +1,464 @@
+{% extends "base.html" %}
+{% block title %}7c 故障处理演示 - 智能充电桩调度计费系统{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── 页面布局 ── */
+.demo-page { max-width: 1200px; margin: 0 auto; padding: 20px; }
+.demo-page h1 { font-size: 1.6rem; margin-bottom: 6px; }
+.demo-desc { background: #e8f4fd; border-left: 4px solid #2196f3; padding: 12px 16px;
+             border-radius: 4px; margin-bottom: 20px; font-size: 0.92rem; line-height: 1.7; }
+.demo-desc b { color: #0d47a1; }
+
+/* ── 卡片 ── */
+.demo-card { background: #fff; border: 1px solid #ddd; border-radius: 8px;
+             padding: 18px 20px; margin-bottom: 18px; }
+.demo-card h3 { margin: 0 0 14px; font-size: 1.05rem;
+                border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; }
+
+/* ── 充电桩网格 ── */
+.charger-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.charger-box { border: 2px solid #ccc; border-radius: 8px; padding: 12px; background: #fafafa;
+               transition: border-color .2s; }
+.charger-box.working  { border-color: #4caf50; }
+.charger-box.fault    { border-color: #f44336; background: #fff3f3; }
+.charger-box.stopped  { border-color: #9e9e9e; background: #f5f5f5; }
+.charger-box h4 { margin: 0 0 8px; font-size: 1rem; }
+.charger-status { display: inline-block; padding: 2px 8px; border-radius: 10px;
+                  font-size: 0.78rem; font-weight: bold; }
+.charger-status.working { background:#e8f5e9; color:#388e3c; }
+.charger-status.fault   { background:#ffebee; color:#c62828; }
+.charger-status.stopped { background:#f5f5f5; color:#757575; }
+.queue-item { background: #fff; border: 1px solid #ddd; border-radius: 4px;
+              padding: 4px 8px; margin-top: 4px; font-size: 0.82rem; }
+.queue-item.charging { background: #e3f2fd; border-color: #1976d2; }
+.queue-item.queued   { background: #f3e5f5; border-color: #7b1fa2; }
+.queue-item.waiting-area { background: #fff8e1; border-color: #f57f17; }
+.empty-queue { color:#aaa; font-size:0.82rem; font-style:italic; }
+
+/* ── 等候区 ── */
+.waiting-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.wait-tag { background: #fff9c4; border: 1px solid #f9a825;
+            border-radius: 4px; padding: 3px 10px; font-size: 0.82rem; }
+
+/* ── 控制面板 ── */
+.control-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.ctrl-select { padding: 7px 12px; border: 1px solid #ccc; border-radius: 4px;
+               font-size: 0.9rem; }
+.btn-demo { padding: 8px 18px; border: none; border-radius: 5px; cursor: pointer;
+            font-size: 0.9rem; font-weight: 600; transition: opacity .15s; }
+.btn-demo:hover { opacity: .85; }
+.btn-demo:disabled { opacity: .4; cursor: not-allowed; }
+.btn-setup    { background: #1976d2; color: #fff; }
+.btn-fault    { background: #e53935; color: #fff; }
+.btn-recover  { background: #43a047; color: #fff; }
+.btn-test     { background: #7b1fa2; color: #fff; }
+.btn-refresh  { background: #607d8b; color: #fff; }
+
+/* ── 状态信息行 ── */
+.state-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+.state-pill { padding: 4px 12px; border-radius: 14px; font-size: 0.82rem; font-weight: 600; }
+.state-pill.active { background:#e8f5e9; color:#2e7d32; }
+.state-pill.paused { background:#ffebee; color:#c62828; }
+.state-pill.fault-on { background:#fff3e0; color:#e65100; }
+
+/* ── 结果区 ── */
+#result-box { border-radius: 6px; padding: 14px; font-size: 0.85rem;
+              background: #fafafa; border: 1px solid #e0e0e0; min-height: 60px; }
+#result-box.success { border-color: #4caf50; background: #f1f8e9; }
+#result-box.error   { border-color: #f44336; background: #ffebee; }
+
+/* ── 测试输出 ── */
+#test-output { font-family: monospace; font-size: 0.82rem; white-space: pre-wrap;
+               background: #1e1e1e; color: #d4d4d4; border-radius: 6px;
+               padding: 14px; max-height: 500px; overflow-y: auto;
+               display: none; margin-top: 12px; }
+.test-pass  { color: #4ec94e; font-weight: bold; }
+.test-fail  { color: #f47070; font-weight: bold; }
+.test-title { color: #79c7ff; font-weight: bold; }
+
+/* ── 步骤说明 ── */
+.steps { list-style: decimal; padding-left: 20px; line-height: 2; font-size: 0.9rem; }
+.steps li code { background: #f5f5f5; padding: 1px 5px; border-radius: 3px; font-size: 0.85rem; }
+
+/* ── 策略说明框 ── */
+.strategy-info { background: #f9fbe7; border: 1px solid #c5e1a5;
+                 border-radius: 6px; padding: 12px 16px; margin-top: 10px; font-size: 0.88rem; }
+.strategy-info h4 { margin: 0 0 6px; color: #33691e; }
+
+/* spinner */
+.spinner { display: none; width: 18px; height: 18px; margin-left: 8px;
+           border: 3px solid #ccc; border-top-color: #1976d2;
+           border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="demo-page">
+  <h1>故障处理演示 (需求 7c)</h1>
+
+  <div class="demo-desc">
+    <b>需求原文（7c）：</b>若充电桩出现故障（只考虑单一充电桩故障且正好该充电桩有车排队的情况），
+    则正在被充电的车辆停止计费，本次充电过程对应一条详单。此后系统重新为故障队列中的车辆进行调度。<br>
+    当充电桩故障恢复，若其它同类型充电桩中尚有车辆排队，则暂停等候区叫号服务，
+    将其它同类型充电桩中尚未充电的车辆合为一组，按照排队号码先后顺序重新调度。调度完毕后，再重新开启等候区叫号服务。
+  </div>
+
+  <!-- ── 步骤说明 ── -->
+  <div class="demo-card">
+    <h3>演示步骤说明</h3>
+    <ol class="steps">
+      <li>点击 <code>初始化演示场景</code>，系统将设置标准场景：F1/F2/F3 各有 1 辆充电中 + 2 辆排队，T1 充电中</li>
+      <li>选择故障调度策略（时间顺序 / 优先级），选择目标充电桩，点击 <code>触发充电桩故障</code></li>
+      <li>观察右侧充电桩状态变化：充电中的车辆停止，故障队列车辆被重新分配</li>
+      <li>点击 <code>故障恢复</code> 恢复充电桩，观察恢复后的重调度行为</li>
+      <li>点击 <code>运行 7c 完整测试</code> 自动验证全部场景并显示结果</li>
+    </ol>
+  </div>
+
+  <!-- ── 当前系统状态 ── -->
+  <div class="demo-card">
+    <h3>当前系统状态 <span class="spinner" id="state-spinner"></span></h3>
+
+    <div class="state-bar" id="state-bar">
+      <span class="state-pill {{ 'active' if snapshot.waiting_area_service else 'paused' }}"
+            id="service-pill">
+        叫号服务：{{ '运行中' if snapshot.waiting_area_service else '已暂停' }}
+      </span>
+      <span class="state-pill {{ 'fault-on' if snapshot.fault_handling else 'active' }}"
+            id="fault-pill">
+        故障处理：{{ '进行中' if snapshot.fault_handling else '无' }}
+      </span>
+      <span class="state-pill fault-on" id="strategy-pill"
+            style="{{ '' if snapshot.fault_handling else 'display:none' }}">
+        策略：{{ '时间顺序' if snapshot.fault_strategy=='time_order' else '优先级' }}
+        · 待分配：{{ snapshot.fault_pending_count }} 辆
+      </span>
+      <span class="state-pill {{ 'fault-on' if snapshot.fault_charger_count > 0 else 'active' }}"
+            id="fault-charger-pill"
+            style="{{ '' if snapshot.fault_charger_count > 0 else 'display:none' }}">
+        故障桩：{{ snapshot.fault_charger_count }} 个
+      </span>
+    </div>
+
+    <!-- 充电桩 -->
+    <div class="charger-grid" id="charger-grid" style="margin-top:14px">
+      {% for c in snapshot.chargers %}
+      <div class="charger-box {{ c.status }}" id="box-{{ c.charger_no }}">
+        <h4>{{ c.charger_no }}
+          <span class="charger-status {{ c.status }}">
+            {{ '正常' if c.status=='working' else ('故障' if c.status=='fault' else '停止') }}
+          </span>
+        </h4>
+        <div style="font-size:0.78rem;color:#666">{{ '快充' if c.type=='fast' else '慢充' }} · {{ c.power }}度/时</div>
+        <div style="margin-top:6px">
+          {% if c.queue %}
+            {% for v in c.queue %}
+            <div class="queue-item {{ v.status }}">
+              {{ v.queue_number }} ({{ '充电中' if v.status=='charging' else '排队' }}) {{ v.request_amount }}度
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-queue">队列为空</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- 故障候队列 -->
+    <div id="fault-pending-section"
+         style="margin-top:12px;{{ '' if snapshot.fault_pending else 'display:none' }}">
+      <b style="color:#c0392b">故障候队列：</b>
+      <div class="waiting-list" id="fault-pending-list">
+        {% if snapshot.fault_pending %}
+          {% for w in snapshot.fault_pending %}
+          <span class="wait-tag" style="background:#fde8e8;border-color:#e57373">{{ w.queue_number }} ({{ '快充' if w.mode=='fast' else '慢充' }}) {{ w.request_amount }}度</span>
+          {% endfor %}
+        {% else %}
+          <span style="color:#aaa;font-size:0.85rem">无</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- 等待区 -->
+    <div style="margin-top:12px">
+      <b>等待区：</b>
+      <div class="waiting-list" id="waiting-list">
+        {% if snapshot.waiting %}
+          {% for w in snapshot.waiting %}
+          <span class="wait-tag">{{ w.queue_number }} ({{ '快充' if w.mode=='fast' else '慢充' }}) {{ w.request_amount }}度</span>
+          {% endfor %}
+        {% else %}
+          <span style="color:#aaa;font-size:0.85rem">无等候车辆</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <button class="btn-demo btn-refresh" onclick="refreshState()">刷新状态</button>
+    </div>
+  </div>
+
+  <!-- ── 控制面板 ── -->
+  <div class="demo-card">
+    <h3>控制面板</h3>
+
+    <!-- 初始化 -->
+    <div style="margin-bottom:16px">
+      <b>第1步：</b>初始化标准演示场景
+      <div class="control-row" style="margin-top:8px">
+        <label style="font-size:0.9rem">每辆充电量（度）：</label>
+        <input type="number" id="charge-amount" value="1" min="0.1" step="0.1"
+               style="width:90px;padding:7px 10px;border:1px solid #ccc;border-radius:4px;font-size:0.9rem">
+        <button class="btn-demo btn-setup" onclick="setupScenario()">
+          初始化演示场景（F1/F2/F3 满载 + T1 充电）
+        </button>
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #eee;margin:14px 0">
+
+    <!-- 触发故障 -->
+    <div style="margin-bottom:16px">
+      <b>第2步：</b>触发充电桩故障
+      <div class="control-row" style="margin-top:8px">
+        <select class="ctrl-select" id="fault-strategy">
+          <option value="time_order">时间顺序调度</option>
+          <option value="priority">优先级调度</option>
+        </select>
+        <select class="ctrl-select" id="fault-charger">
+          {% for c in chargers %}
+          <option value="{{ c.id }}">{{ c.charger_no }} ({{ '快充' if c.type=='fast' else '慢充' }})</option>
+          {% endfor %}
+        </select>
+        <button class="btn-demo btn-fault" onclick="triggerFault()">触发充电桩故障</button>
+      </div>
+
+      <div class="strategy-info" id="strategy-info">
+        <h4 id="strategy-title">时间顺序调度说明</h4>
+        <p id="strategy-desc">
+          暂停等候区叫号服务，将其它同类型充电桩中尚未充电的车辆与故障队列中车辆合为一组，
+          按照排队号码先后顺序重新调度。调度完毕后，再重新开启等候区叫号服务。
+        </p>
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #eee;margin:14px 0">
+
+    <!-- 故障恢复 -->
+    <div style="margin-bottom:16px">
+      <b>第3步：</b>故障恢复（将故障桩恢复为工作状态）
+      <div class="control-row" style="margin-top:8px">
+        <select class="ctrl-select" id="recover-charger">
+          {% for c in chargers %}
+          <option value="{{ c.id }}">{{ c.charger_no }}</option>
+          {% endfor %}
+        </select>
+        <button class="btn-demo btn-recover" onclick="recoverCharger()">故障恢复</button>
+      </div>
+      <p style="font-size:0.85rem;color:#666;margin-top:6px">
+        恢复后：若其它同类型桩有排队车辆，则暂停叫号、合并重调度后再恢复。
+      </p>
+    </div>
+  </div>
+
+  <!-- ── 操作结果 ── -->
+  <div class="demo-card">
+    <h3>操作结果</h3>
+    <div id="result-box">等待操作...</div>
+  </div>
+
+  <!-- ── 自动测试 ── -->
+  <div class="demo-card">
+    <h3>运行 7c 完整测试套件</h3>
+    <p style="font-size:0.9rem;color:#555;margin:0 0 12px">
+      自动执行测试脚本 <code>test_fault_handling_7c.py</code>，覆盖 4 个场景：
+      时间顺序故障、优先级故障、故障恢复(有排队)、故障恢复(无排队)。
+    </p>
+    <button class="btn-demo btn-test" id="run-test-btn" onclick="runTests()">
+      运行 7c 完整测试
+    </button>
+    <span class="spinner" id="test-spinner"></span>
+    <div id="test-output"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const API = '/api/admin/fault_demo';
+
+// ── 策略说明联动 ──────────────────────────────────────────
+const strategyTexts = {
+  time_order: {
+    title: '时间顺序调度说明',
+    desc: '暂停等候区叫号服务，将其它同类型充电桩中尚未充电的车辆与故障队列中车辆合为一组，' +
+          '按照排队号码先后顺序重新调度。调度完毕后，再重新开启等候区叫号服务。'
+  },
+  priority: {
+    title: '优先级调度说明',
+    desc: '暂停等候区叫号服务，当其它同类型充电桩队列有空位时，优先为故障充电桩等候队列提供调度，' +
+          '待该故障队列中全部车辆调度完毕后，再重新开启等候区叫号服务。'
+  }
+};
+document.getElementById('fault-strategy').addEventListener('change', function() {
+  const info = strategyTexts[this.value] || strategyTexts.time_order;
+  document.getElementById('strategy-title').textContent = info.title;
+  document.getElementById('strategy-desc').textContent = info.desc;
+});
+
+// ── API 调用辅助 ──────────────────────────────────────────
+async function callApi(action, extra={}) {
+  const res = await fetch(API, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action, ...extra})
+  });
+  return res.json();
+}
+
+function showResult(msg, isError=false) {
+  const box = document.getElementById('result-box');
+  box.textContent = msg;
+  box.className = isError ? 'error' : 'success';
+}
+
+// ── 刷新状态 ──────────────────────────────────────────────
+async function refreshState() {
+  document.getElementById('state-spinner').style.display = 'inline-block';
+  const data = await callApi('get_state');
+  document.getElementById('state-spinner').style.display = 'none';
+  if (data.success) renderSnapshot(data.snapshot);
+}
+
+function renderSnapshot(s) {
+  // 叫号服务
+  const sp = document.getElementById('service-pill');
+  sp.textContent = '叫号服务：' + (s.waiting_area_service ? '运行中' : '已暂停');
+  sp.className = 'state-pill ' + (s.waiting_area_service ? 'active' : 'paused');
+
+  // 故障处理进程
+  const fp = document.getElementById('fault-pill');
+  fp.textContent = '故障处理：' + (s.fault_handling ? '进行中' : '无');
+  fp.className = 'state-pill ' + (s.fault_handling ? 'fault-on' : 'active');
+
+  // 调度策略 + 待分配数（仅故障处理进行中时显示）
+  const stratPill = document.getElementById('strategy-pill');
+  if (s.fault_handling) {
+    const label = s.fault_strategy === 'time_order' ? '时间顺序' : '优先级';
+    stratPill.textContent = '策略：' + label + ' · 待分配：' + s.fault_pending_count + ' 辆';
+    stratPill.style.display = '';
+  } else {
+    stratPill.style.display = 'none';
+  }
+
+  // 故障桩计数（有故障桩时显示）
+  const fcp = document.getElementById('fault-charger-pill');
+  if (s.fault_charger_count > 0) {
+    fcp.textContent = '故障桩：' + s.fault_charger_count + ' 个';
+    fcp.className = 'state-pill fault-on';
+    fcp.style.display = '';
+  } else {
+    fcp.style.display = 'none';
+  }
+
+  // 充电桩网格
+  const grid = document.getElementById('charger-grid');
+  grid.innerHTML = s.chargers.map(c => {
+    const statusLabel = {working:'正常', fault:'故障', stopped:'停止'}[c.status] || c.status;
+    const queueHtml = c.queue.length === 0
+      ? '<div class="empty-queue">队列为空</div>'
+      : c.queue.map(v =>
+          `<div class="queue-item ${v.status}">${v.queue_number} (${v.status==='charging'?'充电中':'排队'}) ${v.request_amount}度</div>`
+        ).join('');
+    return `
+      <div class="charger-box ${c.status}" id="box-${c.charger_no}">
+        <h4>${c.charger_no} <span class="charger-status ${c.status}">${statusLabel}</span></h4>
+        <div style="font-size:.78rem;color:#666">${c.type==='fast'?'快充':'慢充'} · ${c.power}度/时</div>
+        <div style="margin-top:6px">${queueHtml}</div>
+      </div>`;
+  }).join('');
+
+  // 故障候队列
+  const fpSection = document.getElementById('fault-pending-section');
+  const fpl = document.getElementById('fault-pending-list');
+  if (s.fault_pending && s.fault_pending.length > 0) {
+    fpSection.style.display = '';
+    fpl.innerHTML = s.fault_pending.map(w =>
+      `<span class="wait-tag" style="background:#fde8e8;border-color:#e57373">${w.queue_number} (${w.mode==='fast'?'快充':'慢充'}) ${w.request_amount}度</span>`
+    ).join('');
+  } else {
+    fpSection.style.display = 'none';
+    fpl.innerHTML = '<span style="color:#aaa;font-size:.85rem">无</span>';
+  }
+
+  // 等待区
+  const wl = document.getElementById('waiting-list');
+  wl.innerHTML = s.waiting.length === 0
+    ? '<span style="color:#aaa;font-size:.85rem">无等候车辆</span>'
+    : s.waiting.map(w =>
+        `<span class="wait-tag">${w.queue_number} (${w.mode==='fast'?'快充':'慢充'}) ${w.request_amount}度</span>`
+      ).join('');
+}
+
+// ── 操作按钮 ──────────────────────────────────────────────
+async function setupScenario() {
+  const amount = parseFloat(document.getElementById('charge-amount').value) || 1.0;
+  showResult(`正在初始化演示场景（每辆 ${amount} 度）...`);
+  const data = await callApi('setup', {charge_amount: amount});
+  showResult(data.message, !data.success);
+  if (data.snapshot) renderSnapshot(data.snapshot);
+}
+
+async function triggerFault() {
+  const strategy = document.getElementById('fault-strategy').value;
+  const chargerId = document.getElementById('fault-charger').value;
+  showResult(`正在触发故障（充电桩ID=${chargerId}，策略=${strategy}）...`);
+  const data = await callApi('trigger_fault', {charger_id: parseInt(chargerId), strategy});
+  showResult(data.message, !data.success);
+  if (data.snapshot) renderSnapshot(data.snapshot);
+}
+
+async function recoverCharger() {
+  const chargerId = document.getElementById('recover-charger').value;
+  showResult(`正在恢复充电桩（充电桩ID=${chargerId}）...`);
+  const data = await callApi('recover', {charger_id: parseInt(chargerId)});
+  showResult(data.message, !data.success);
+  if (data.snapshot) renderSnapshot(data.snapshot);
+}
+
+// ── 运行测试 ──────────────────────────────────────────────
+async function runTests() {
+  const btn = document.getElementById('run-test-btn');
+  const spinner = document.getElementById('test-spinner');
+  const out = document.getElementById('test-output');
+
+  btn.disabled = true;
+  spinner.style.display = 'inline-block';
+  out.style.display = 'none';
+  showResult('正在运行 7c 完整测试套件，请稍候...');
+
+  const data = await callApi('run_tests');
+  btn.disabled = false;
+  spinner.style.display = 'none';
+
+  showResult(
+    data.test_passed ? '测试套件全部通过 (4/4)' : '部分测试失败，请查看输出',
+    !data.test_passed
+  );
+
+  // 美化输出
+  let html = (data.output || '')
+    .replace(/\[PASS\]/g, '<span class="test-pass">[PASS]</span>')
+    .replace(/\[FAIL\]/g, '<span class="test-fail">[FAIL]</span>')
+    .replace(/\[OK\]/g, '<span class="test-pass">[OK]</span>')
+    .replace(/(测试 [ABCD]：[^\n]+)/g, '<span class="test-title">$1</span>')
+    .replace(/(总计: \d+\/\d+ 通过)/g, '<span class="test-pass">$1</span>');
+
+  out.innerHTML = html;
+  out.style.display = 'block';
+}
+</script>
+{% endblock %}

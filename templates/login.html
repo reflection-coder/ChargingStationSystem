@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}登录 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>🔐 用户登录</h2>
+        <form method="POST" action="{{ url_for('login') }}">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" placeholder="请输入用户名" required>
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="请输入密码" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">登录</button>
+        </form>
+        <p class="auth-link">还没有账号？<a href="{{ url_for('register') }}">立即注册</a></p>
+        <p class="auth-hint">管理员账户: admin / admin123</p>
+    </div>
+</div>
+{% endblock %}

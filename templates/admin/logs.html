@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}系统日志 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>📜 系统日志</h1>
+
+    <div class="card">
+        {% if logs %}
+        <div class="log-list">
+            {% for log in logs %}
+            <div class="log-entry">
+                <span class="log-time">{{ log.created_at[:19] if log.created_at else '-' }}</span>
+                <span class="log-type">{{ log.event_type }}</span>
+                <span class="log-desc">{{ log.description }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-text">暂无日志</p>
+        {% endif %}
+    </div>
+
+    <div class="auto-refresh">
+        <label><input type="checkbox" id="auto-refresh"> 自动刷新 (5秒)</label>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+if (document.getElementById('auto-refresh').checked) {
+    setInterval(function() { location.reload(); }, 5000);
+}
+</script>
+{% endblock %}

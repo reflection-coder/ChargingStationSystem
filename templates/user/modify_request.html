@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}修改充电请求 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h1>✏️ 修改充电请求</h1>
+
+    <div class="card">
+        <div class="request-info">
+            <h3>当前请求信息</h3>
+            <p><strong>排队号:</strong> <span class="badge badge-{{ 'fast' if req.mode == 'fast' else 'slow' }}">{{ req.queue_number }}</span></p>
+            <p><strong>模式:</strong> {{ '快充' if req.mode == 'fast' else '慢充' }}</p>
+            <p><strong>请求充电量:</strong> {{ req.request_amount }} 度</p>
+            <p><strong>状态:</strong>
+                {% if req.status == 'waiting' %}等候中
+                {% elif req.status == 'queued' %}排队中
+                {% elif req.status == 'charging' %}充电中
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    {% if req.status == 'waiting' %}
+    <!-- 修改充电模式 -->
+    <div class="card">
+        <h3>🔄 修改充电模式</h3>
+        <p class="hint">修改后将重新生成排队号，排到新模式队列最后一位。</p>
+        <form method="POST">
+            <input type="hidden" name="action" value="modify_mode">
+            <div class="form-group">
+                <label>新模式</label>
+                <div class="mode-selector">
+                    <label class="mode-option mode-fast">
+                        <input type="radio" name="mode" value="fast" {{ 'checked' if req.mode == 'fast' else '' }}>
+                        <div class="mode-content">
+                            <span class="mode-icon">⚡</span>
+                            <span class="mode-name">快充</span>
+                        </div>
+                    </label>
+                    <label class="mode-option mode-slow">
+                        <input type="radio" name="mode" value="slow" {{ 'checked' if req.mode == 'slow' else '' }}>
+                        <div class="mode-content">
+                            <span class="mode-icon">🔋</span>
+                            <span class="mode-name">慢充</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">确认修改模式</button>
+        </form>
+    </div>
+
+    <!-- 修改充电量 -->
+    <div class="card">
+        <h3>🔋 修改充电量</h3>
+        <p class="hint">排队号不变。</p>
+        <form method="POST">
+            <input type="hidden" name="action" value="modify_amount">
+            <div class="form-group">
+                <label for="request_amount">新充电量（度）</label>
+                <input type="number" id="request_amount" name="request_amount"
+                       value="{{ req.request_amount }}" required min="0.1" step="0.1">
+            </div>
+            <button type="submit" class="btn btn-primary">确认修改充电量</button>
+        </form>
+    </div>
+    {% else %}
+    <div class="card card-warning">
+        <h3>⚠️ 修改限制</h3>
+        <p>车辆已在充电区（{{ '充电桩队列中' if req.status == 'queued' else '正在充电' }}），不允许修改充电模式或充电量。</p>
+        <p>如需修改，请先<a href="{{ url_for('cancel_request', request_id=req.id) }}" class="btn btn-sm btn-danger">取消当前充电</a>，然后重新提交请求进入等候区排队。</p>
+    </div>
+    {% endif %}
+
+    <!-- 取消充电 -->
+    <div class="card card-danger">
+        <h3>❌ 取消充电</h3>
+        <p>取消后，如在等候区则直接移除，如在充电区则停止充电并按实际充电量计费。</p>
+        <a href="{{ url_for('cancel_request', request_id=req.id) }}" class="btn btn-danger" onclick="return confirm('确认取消充电请求？')">取消充电</a>
+    </div>
+
+    <div class="form-actions">
+        <a href="{{ url_for('user_dashboard') }}" class="btn btn-outline">返回面板</a>
+    </div>
+</div>
+{% endblock %}

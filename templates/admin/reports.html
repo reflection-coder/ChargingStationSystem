@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}数据报表 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>📊 数据报表</h1>
+
+    <!-- 周期选择 -->
+    <div class="card">
+        <div class="period-selector">
+            <a href="?period=day" class="btn {{ 'btn-primary' if period == 'day' else 'btn-outline' }}">日报</a>
+            <a href="?period=week" class="btn {{ 'btn-primary' if period == 'week' else 'btn-outline' }}">周报</a>
+            <a href="?period=month" class="btn {{ 'btn-primary' if period == 'month' else 'btn-outline' }}">月报</a>
+        </div>
+    </div>
+
+    <!-- 汇总 -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ summary.total_charges }}</div>
+            <div class="stat-label">累计充电次数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ summary.total_duration }}</div>
+            <div class="stat-label">累计充电时长(时)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ summary.total_energy }}</div>
+            <div class="stat-label">累计充电量(度)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">¥{{ summary.total_charge_fee }}</div>
+            <div class="stat-label">累计充电费</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">¥{{ summary.total_service_fee }}</div>
+            <div class="stat-label">累计服务费</div>
+        </div>
+        <div class="stat-card stat-fast">
+            <div class="stat-value">¥{{ summary.total_fee }}</div>
+            <div class="stat-label">累计总费用</div>
+        </div>
+    </div>
+
+    <!-- 报表详情 -->
+    <div class="card">
+        <h3>📋 {{ {'day':'日报','week':'周报','month':'月报'}.get(period, '报表') }}详情</h3>
+        {% if stats %}
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>充电桩编号</th>
+                        <th>累计充电次数</th>
+                        <th>累计充电时长(时)</th>
+                        <th>累计充电量(度)</th>
+                        <th>累计充电费(元)</th>
+                        <th>累计服务费(元)</th>
+                        <th>累计总费用(元)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in stats %}
+                    <tr>
+                        <td>{{ s.time_period }}</td>
+                        <td>{{ s.charger_no }}</td>
+                        <td>{{ s.total_charges }}</td>
+                        <td>{{ s.total_duration }}</td>
+                        <td>{{ s.total_energy }}</td>
+                        <td>¥{{ s.total_charge_fee }}</td>
+                        <td>¥{{ s.total_service_fee }}</td>
+                        <td><strong>¥{{ s.total_fee }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="empty-text">暂无数据</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

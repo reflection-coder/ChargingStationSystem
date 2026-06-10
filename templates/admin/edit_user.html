@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}编辑用户车辆信息 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h1>✏️ 编辑用户车辆信息</h1>
+
+    <div class="card">
+        <h3>用户：{{ user.username }}</h3>
+        <form method="POST">
+            <div class="form-group">
+                <label for="battery_capacity">电池总容量（度）</label>
+                <input type="number" id="battery_capacity" name="battery_capacity"
+                       value="{{ user.battery_capacity }}" required min="1" step="0.1">
+                <small>车辆的电池总容量，用于限制充电请求量</small>
+            </div>
+            <div class="form-group">
+                <label for="vehicle_model">车辆型号</label>
+                <input type="text" id="vehicle_model" name="vehicle_model"
+                       value="{{ user.vehicle_model or '' }}" placeholder="例如：特斯拉 Model 3">
+            </div>
+            <div class="form-group">
+                <label for="password">新密码（不修改则留空）</label>
+                <input type="password" id="password" name="password" placeholder="留空则不修改密码" minlength="6">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">保存修改</button>
+                <a href="{{ url_for('admin_users') }}" class="btn btn-outline">返回列表</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

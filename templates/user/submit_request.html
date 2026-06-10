@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}提交充电请求 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="form-container">
+    <h1>🔌 提交充电请求</h1>
+
+    <div class="card">
+        <form method="POST" action="{{ url_for('submit_request') }}" id="charge-form">
+            <div class="form-group">
+                <label>充电模式</label>
+                <div class="mode-selector">
+                    <label class="mode-option mode-fast">
+                        <input type="radio" name="mode" value="fast" checked>
+                        <div class="mode-content">
+                            <span class="mode-icon">⚡</span>
+                            <span class="mode-name">快充</span>
+                            <span class="mode-detail">{{ fast_power }}度/小时</span>
+                        </div>
+                    </label>
+                    <label class="mode-option mode-slow">
+                        <input type="radio" name="mode" value="slow">
+                        <div class="mode-content">
+                            <span class="mode-icon">🔋</span>
+                            <span class="mode-name">慢充</span>
+                            <span class="mode-detail">{{ slow_power }}度/小时</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="request_amount">本次请求充电量（度）</label>
+                <input type="number" id="request_amount" name="request_amount"
+                       placeholder="请输入充电量（度）" required min="0.1" step="0.1">
+                <small>根据所选功率，快充约需 <span id="fast-estimate">-</span>，慢充约需 <span id="slow-estimate">-</span></small>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg">提交请求</button>
+                <a href="{{ url_for('user_dashboard') }}" class="btn btn-outline">返回</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>💰 电价信息</h3>
+        <pre class="price-info">{{ price_info }}</pre>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const fastPower = {{ fast_power }};
+const slowPower = {{ slow_power }};
+const amountInput = document.getElementById('request_amount');
+const fastEstimate = document.getElementById('fast-estimate');
+const slowEstimate = document.getElementById('slow-estimate');
+
+amountInput.addEventListener('input', function() {
+    const amount = parseFloat(this.value);
+    if (amount > 0) {
+        fastEstimate.textContent = (amount / fastPower).toFixed(2) + ' 小时';
+        slowEstimate.textContent = (amount / slowPower).toFixed(2) + ' 小时';
+    } else {
+        fastEstimate.textContent = '-';
+        slowEstimate.textContent = '-';
+    }
+});
+</script>
+{% endblock %}

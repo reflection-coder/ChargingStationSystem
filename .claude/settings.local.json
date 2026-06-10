@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(pip install *)",
+      "Bash(python -c \"from app import create_app; app = create_app\\(\\); print\\('App created successfully!'\\)\")",
+      "Bash(python app.py)",
+      "Bash(curl -s http://localhost:5000/)",
+      "Bash(curl -s http://localhost:5000/login)",
+      "Bash(curl *)",
+      "Bash(python test_system.py)",
+      "Bash(python -X utf8 test_system.py)",
+      "Bash(python -m json.tool)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Fault handling:', d['fault_handling']\\); print\\('Waiting service:', d['waiting_area_service']\\); [print\\(f'{c[\\\\\"charger_no\\\\\"]}: {c[\\\\\"status\\\\\"]}, queue: {c[\\\\\"queue_count\\\\\"]}'\\) for c in d['chargers']]\")",
+      "Bash(taskkill //F //IM python.exe)",
+      "Bash(timeout 3 python -X utf8 -c ' *)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('系统运行中!'\\); print\\(f'快充电桩: {len\\([c for c in d[\\\\\"chargers\\\\\"] if c[\\\\\"type\\\\\"]==\\\\\"fast\\\\\"]\\)}个'\\); print\\(f'慢充电桩: {len\\([c for c in d[\\\\\"chargers\\\\\"] if c[\\\\\"type\\\\\"]==\\\\\"slow\\\\\"]\\)}个'\\); print\\(f'等候区容量: {d[\\\\\"waiting_area\\\\\"][\\\\\"capacity\\\\\"]}'\\); print\\(f'当前时间: {d[\\\\\"current_time\\\\\"][:19]}'\\)\")",
+      "Bash(Get-ChildItem -Path \"D:\\\\goolelfile\\\\ChargingStationSystem-master\\\\ChargingStationSystem-master\" -Force)",
+      "Bash(Select-Object Name, FullName)",
+      "Bash(python -c \"import sys; data=sys.stdin.buffer.read\\(\\); print\\(data.decode\\('utf-8', errors='replace'\\)\\)\")",
+      "Bash(python -c \"import sys; sys.stdout.reconfigure\\(encoding='utf-8'\\)\")",
+      "Bash(python test_time_order_dispatch.py)",
+      "Bash(python -c \"import sys; sys.stdout.reconfigure\\(encoding='utf-8'\\); print\\(sys.stdin.read\\(\\)\\)\")",
+      "Bash(python -X utf8 test_fault_handling_7c.py)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(python -X utf8 test_time_order_dispatch.py)",
+      "Bash(python -X utf8 -c ' *)"
+    ]
+  }
+}

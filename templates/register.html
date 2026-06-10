@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}注册 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>📝 用户注册（含车辆信息）</h2>
+        <form method="POST" action="{{ url_for('register') }}">
+            <div class="form-group">
+                <label for="username">用户名 *</label>
+                <input type="text" id="username" name="username" placeholder="至少3个字符" required minlength="3">
+            </div>
+            <div class="form-group">
+                <label for="password">密码 *</label>
+                <input type="password" id="password" name="password" placeholder="至少6个字符" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label for="confirm_password">确认密码 *</label>
+                <input type="password" id="confirm_password" name="confirm_password" placeholder="再次输入密码" required>
+            </div>
+            <hr>
+            <h4>🚗 车辆信息</h4>
+            <div class="form-group">
+                <label for="battery_capacity">电池总容量（度）*</label>
+                <input type="number" id="battery_capacity" name="battery_capacity"
+                       placeholder="例如：60" value="60" required min="1" step="0.1">
+                <small>您的电动车电池总容量，用于充电量校验</small>
+            </div>
+            <div class="form-group">
+                <label for="vehicle_model">车辆型号（选填）</label>
+                <input type="text" id="vehicle_model" name="vehicle_model"
+                       placeholder="例如：特斯拉 Model 3">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">注册</button>
+        </form>
+        <p class="auth-link">已有账号？<a href="{{ url_for('login') }}">立即登录</a></p>
+    </div>
+</div>
+{% endblock %}

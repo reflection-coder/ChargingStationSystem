@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}用户面板 - 智能充电桩调度计费系统{% endblock %}
+{% block content %}
+<div class="dashboard">
+    <h1>📊 欢迎，{{ user.username }}</h1>
+
+    <!-- 系统概览 -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ active_requests|length }}</div>
+            <div class="stat-label">活跃请求</div>
+        </div>
+        <div class="stat-card stat-fast">
+            <div class="stat-value">{{ config.FAST_CHARGING_POWER }}</div>
+            <div class="stat-label">快充功率(度/时)</div>
+        </div>
+        <div class="stat-card stat-slow">
+            <div class="stat-value">{{ config.TRICKLE_CHARGING_POWER }}</div>
+            <div class="stat-label">慢充功率(度/时)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ config.SERVICE_FEE_RATE }}</div>
+            <div class="stat-label">服务费(元/度)</div>
+        </div>
+    </div>
+
+    <!-- 活跃请求 -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🔌 我的充电请求</h3>
+            <a href="{{ url_for('submit_request') }}" class="btn btn-primary">提交新请求</a>
+        </div>
+        {% if active_requests %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>排队号</th>
+                    <th>模式</th>
+                    <th>请求电量(度)</th>
+                    <th>状态</th>
+                    <th>充电桩</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in active_requests %}
+                <tr>
+                    <td><span class="badge badge-{{ 'fast' if req.mode == 'fast' else 'slow' }}">{{ req.queue_number }}</span></td>
+                    <td>{{ '快充' if req.mode == 'fast' else '慢充' }}</td>
+                    <td>{{ req.request_amount }}</td>
+                    <td>
+                        {% if req.status == 'waiting' %}
+                        <span class="status status-waiting">等候中</span>
+                        {% elif req.status == 'queued' %}
+                        <span class="status status-queued">排队中</span>
+                        {% elif req.status == 'charging' %}
+                        <span class="status status-charging">充电中</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ req.charger_id or '-' }}</td>
+                    <td>
+                        <a href="{{ url_for('modify_request', request_id=req.id) }}" class="btn btn-sm btn-outline">修改</a>
+                        <a href="{{ url_for('cancel_request', request_id=req.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('确认取消？')">取消</a>
+                        {% if req.status == 'charging' %}
+                        <a href="{{ url_for('end_charging', request_id=req.id) }}" class="btn btn-sm btn-warning" onclick="return confirm('确认结束充电？将按实际充电量计费。')">结束充电</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-text">暂无活跃充电请求</p>
+        {% endif %}
+    </div>
+
+    <!-- 最近详单 -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📋 最近充电详单</h3>
+            <a href="{{ url_for('user_bills') }}" class="btn btn-outline">查看全部</a>
+        </div>
+        {% if recent_bills %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>详单编号</th>
+                    <th>充电桩</th>
+                    <th>充电量(度)</th>
+                    <th>时长(时)</th>
+                    <th>充电费</th>
+                    <th>服务费</th>
+                    <th>总费用</th>
+                    <th>时间</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bill in recent_bills %}
+                <tr>
+                    <td>{{ bill.bill_no[:16] }}...</td>
+                    <td>{{ bill.charger_no }}</td>
+                    <td>{{ bill.charge_amount }}</td>
+                    <td>{{ bill.charge_duration }}</td>
+                    <td>¥{{ bill.charge_fee }}</td>
+                    <td>¥{{ bill.service_fee }}</td>
+                    <td><strong>¥{{ bill.total_fee }}</strong></td>
+                    <td>{{ bill.generated_time[:10] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-text">暂无充电记录</p>
+        {% endif %}
+    </div>
+
+    <!-- 电价信息 -->
+    <div class="card">
+        <h3>💰 电价说明</h3>
+        <pre class="price-info">{{ price_info }}</pre>
+    </div>
+</div>
+{% endblock %}
